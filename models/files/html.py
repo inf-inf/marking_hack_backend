@@ -1,12 +1,12 @@
 from jinja2 import Environment, FileSystemLoader
 
-from config.files import HTML_TEMPLATE_PATH
+from config.files import HTML_TEMPLATES_PATH
 
 
 class HTMLRenderer:
     """ Рендеринг HTML по шаблонам через jinja2 """
 
-    _template_env = Environment(loader=FileSystemLoader(HTML_TEMPLATE_PATH))
+    _template_env = Environment(loader=FileSystemLoader(HTML_TEMPLATES_PATH))
 
     def __init__(self, template_file: str):
         """
