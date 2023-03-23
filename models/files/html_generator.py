@@ -3,7 +3,7 @@ from jinja2 import Environment, FileSystemLoader
 from config.files import HTML_TEMPLATES_PATH
 
 
-class HTMLRenderer:
+class HTMLGenerator:
     """ Рендеринг HTML по шаблонам через jinja2 """
 
     _template_env = Environment(loader=FileSystemLoader(HTML_TEMPLATES_PATH))
