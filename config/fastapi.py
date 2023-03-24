@@ -7,3 +7,10 @@ FASTAPI_KWARGS = {
     'redoc_url': None,
     'openapi_url': '/admin/openapi.json',
 }
+
+CORS_KWARGS = {
+    'allow_origins': ["*"],
+    'allow_credentials': True,
+    'allow_methods': ["*"],
+    'allow_headers': ["*"],
+}
