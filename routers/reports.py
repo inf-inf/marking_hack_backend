@@ -1,9 +1,12 @@
 from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response, JSONResponse
+from sqlalchemy.orm import Session
 
 from models.files.images import get_file_preview
 from models.files.pdf_generator import PDFGenerator
+from dependencies.sql_db import get_db
+from sql_db.orm_models.reports import Report
 
 router_reports = APIRouter(
     prefix='/reports',
@@ -16,7 +19,7 @@ class PDFResponse(Response):
 
 
 @router_reports.post('/save', summary='Сохранение данных по отчету')
-def save():
+def save(db: Session = Depends(get_db)):
     """ Сохранить данные пользователя. Возвращает PDF """
 
     pdf_gen = PDFGenerator('report.html')
@@ -24,6 +27,18 @@ def save():
 
     dt_str = datetime.now().strftime('%d.%m.%Y %H-%M-%S')
     file_name = f'report_{dt_str}.pdf'
+
+    d = {   # мок пока параметры с фронта не приходят
+        'dt_created': dt_str,
+    }
+    db_report = Report(
+        type=1,
+        name=file_name,
+        data=d
+    )
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
 
     res = {
         "success": True,
@@ -53,7 +68,7 @@ def get_pdf():
 
 
 @router_reports.get('/v2/get_pdf', summary='Получение файла отчета в формате PDF')
-def get_pdf(report_id: int):
+def get_pdf(report_id: int, db: Session = Depends(get_db)):
     """ Возвращает файл PDF json bytes array"""
 
     pdf_gen = PDFGenerator('report.html')
@@ -72,7 +87,7 @@ def get_pdf(report_id: int):
 
 
 @router_reports.get('/get_list', summary='Список отчетов')
-def get_list():
+def get_list(db: Session = Depends(get_db)):
     """ Возвращает список доступных id отчетов для метода `/reports/v2/get_pdf` """
 
     res = [
