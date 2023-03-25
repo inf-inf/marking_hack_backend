@@ -1,7 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from config.fastapi import FASTAPI_KWARGS
+from config.fastapi import FASTAPI_KWARGS, CORS_KWARGS
 import routers
 
 
@@ -9,8 +10,13 @@ app = FastAPI(
     **FASTAPI_KWARGS
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    **CORS_KWARGS
+)
+
 app.include_router(routers.common)
-app.include_router(routers.files)
+app.include_router(routers.reports)
 
 
 if __name__ == "__main__":
