@@ -22,15 +22,16 @@ class PDFResponse(Response):
 def save(db: Session = Depends(get_db)):
     """ Сохранить данные пользователя. Возвращает PDF """
 
-    pdf_gen = PDFGenerator('report.html')
-    pdf_file = pdf_gen.get_file
-
     dt_str = datetime.now().strftime('%d.%m.%Y %H-%M-%S')
     file_name = f'report_{dt_str}.pdf'
 
-    d = {   # мок пока параметры с фронта не приходят
+    d = {  # мок пока параметры с фронта не приходят
         'dt_created': dt_str,
     }
+
+    pdf_gen = PDFGenerator('report.html', **d)
+    pdf_file = pdf_gen.get_file
+
     db_report = Report(
         type=1,
         name=file_name,
@@ -71,15 +72,14 @@ def get_pdf():
 def get_pdf(report_id: int, db: Session = Depends(get_db)):
     """ Возвращает файл PDF json bytes array"""
 
-    pdf_gen = PDFGenerator('report.html')
-    pdf_file = pdf_gen.get_file
+    pdf_data = db.query(Report).filter(Report.id == report_id).first()
 
-    dt_str = datetime.now().strftime('%d.%m.%Y %H-%M-%S')
-    file_name = f'report_{dt_str}.pdf'
+    pdf_gen = PDFGenerator('report.html', **pdf_data.data)
+    pdf_file = pdf_gen.get_file
 
     res = {
         "success": True,
-        "filename": file_name,
+        "filename": pdf_data.name,
         "file": list(pdf_file)
     }
 
@@ -90,12 +90,13 @@ def get_pdf(report_id: int, db: Session = Depends(get_db)):
 def get_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """ Возвращает список доступных id отчетов для метода `/reports/v2/get_pdf` """
 
-    reports_db = db.query(Report).offset(skip).limit(limit).all()
+    reports_db = db.query(Report).order_by(Report.id.desc()).offset(skip).limit(limit).all()
+    preview = get_file_preview()
     res = [
         {
             'id': report.id,
             'name': report.name,
-            'preview': get_file_preview()
+            'preview': preview
         } for report in reports_db
     ]
 
