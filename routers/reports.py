@@ -1,6 +1,8 @@
 from datetime import datetime
 from fastapi import APIRouter
 from fastapi.responses import Response, JSONResponse
+
+from models.files.images import get_file_preview
 from models.files.pdf_generator import PDFGenerator
 
 router_reports = APIRouter(
@@ -13,7 +15,7 @@ class PDFResponse(Response):
     media_type = 'application/pdf'
 
 
-@router_reports.post('/save', summary='Сохранение данных по отчету', response_class=PDFResponse)
+@router_reports.post('/save', summary='Сохранение данных по отчету')
 def save():
     """ Сохранить данные пользователя. Возвращает PDF """
 
@@ -50,7 +52,7 @@ def get_pdf():
     return PDFResponse(pdf_file, headers=headers)
 
 
-@router_reports.get('/v2/get_pdf', summary='Получение файла отчета в формате PDF', response_class=PDFResponse)
+@router_reports.get('/v2/get_pdf', summary='Получение файла отчета в формате PDF')
 def get_pdf(report_id: int):
     """ Возвращает файл PDF json bytes array"""
 
@@ -69,13 +71,21 @@ def get_pdf(report_id: int):
     return JSONResponse(res)
 
 
-@router_reports.get('/get_list', summary='Список отчетов', response_class=PDFResponse)
+@router_reports.get('/get_list', summary='Список отчетов')
 def get_list():
     """ Возвращает список доступных id отчетов для метода `/reports/v2/get_pdf` """
 
-    res = {
-        "success": True,
-        "reports": [1, 2, 3, 4, 5],
-    }
+    res = [
+        {
+            'id': 1,
+            'name': 'name1.pdf',
+            'preview': get_file_preview()
+        },
+        {
+            'id': 2,
+            'name': 'name2.pdf',
+            'preview': get_file_preview()
+        }
+    ]
 
     return JSONResponse(res)
