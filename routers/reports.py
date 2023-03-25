@@ -23,8 +23,13 @@ def save():
     dt_str = datetime.now().strftime('%d.%m.%Y %H-%M-%S')
     file_name = f'report_{dt_str}.pdf'
 
-    headers = {'Content-Disposition': f'attachment; filename="{file_name}"'}
-    return PDFResponse(pdf_file, headers=headers)
+    res = {
+        "success": True,
+        "filename": file_name,
+        "file": list(pdf_file)
+    }
+
+    return JSONResponse(res)
 
 
 @router_reports.get('/get_pdf',
