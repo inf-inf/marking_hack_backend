@@ -87,17 +87,23 @@ def get_pdf(report_id: int, db: Session = Depends(get_db)):
 
 
 @router_reports.get('/get_list', summary='Список отчетов')
-def get_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_list(page: int = 1, limit: int = 18, db: Session = Depends(get_db)):
     """ Возвращает список доступных id отчетов для метода `/reports/v2/get_pdf` """
 
+    skip = limit * page - limit
     reports_db = db.query(Report).order_by(Report.id.desc()).offset(skip).limit(limit).all()
+    reports_total = db.query(Report).count()
     preview = get_file_preview()
-    res = [
-        {
-            'id': report.id,
-            'name': report.name,
-            'preview': preview
-        } for report in reports_db
-    ]
+
+    res = {
+        'reports': [
+            {
+                'id': report.id,
+                'name': report.name,
+                'preview': preview
+            } for report in reports_db
+        ],
+        'total': reports_total
+    }
 
     return JSONResponse(res)
