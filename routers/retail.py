@@ -12,13 +12,13 @@ router_retail = APIRouter(
 )
 
 
-def get_loss_rate(percent: float) -> str:
+def get_loss_rate(percent: float, light: bool = False) -> str:
     """ Цвета для обозначения уровня потерь на карте """
     if percent < -10:
-        return '#28a745'
+        return '#93ffac' * light or '#28a745'   # Зеленый
     elif -10 <= percent <= 0:
-        return '#ffc107'
-    return '#dc3545'
+        return '#ffff9b' * light or '#ffc107'   # Желтый
+    return '#fc7462' * light or '#dc3545'       # Красный
 
 
 @router_retail.get('/get_stores', summary='Получить торговые точки')
@@ -55,7 +55,8 @@ def get_stores(inn: str = '', db: Session = Depends(get_db)):
             'geo_lat': 55 + randint(450000, 780000) / 1000000,  # Временно рандомные координаты
             'geo_lon': 37 + randint(450000, 780000) / 1000000,  # пока в базе нет реальных
             'loss_percentage': float(s.loss_percentage),
-            'loss_rate': get_loss_rate(float(s.loss_percentage))
+            'loss_rate_dark': get_loss_rate(float(s.loss_percentage)),
+            'loss_rate_light': get_loss_rate(float(s.loss_percentage), light=True)
         } for s in stores
     ]
 
