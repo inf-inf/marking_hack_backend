@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, File, UploadFile
-from datetime import datetime
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from schemas.upload_data import RetailOut
 
 from dependencies.sql_db import get_db
+from schemas.config import SetConfig
 
 
 router_config = APIRouter(
@@ -14,8 +13,14 @@ router_config = APIRouter(
 
 
 @router_config.post('/set', summary="Конфигурирование цветов отображения уведомлений")
-def config(good_percent_limit: float, warn_percent_limit: float, db: Session = Depends(get_db)):
-    db.execute(text('UPDATE public.config '
-                    'SET good_percent_limit = :good_percent_limit, '
-                    '    warn_percent_limit = :warn_percent_limit'))
-    return {'good_percent_limit': good_percent_limit, 'warn_percent_limit': warn_percent_limit}
+def config(conf: SetConfig, db: Session = Depends(get_db)):
+    sql = """
+        UPDATE public.config
+        SET good_percent_limit = :good_percent_limit, warn_percent_limit = :warn_percent_limit
+    """
+    params = {
+        'good_percent_limit': conf.good_percent_limit,
+        'warn_percent_limit': conf.warn_percent_limit
+    }
+    db.execute(text(sql), params)
+    return params
