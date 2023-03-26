@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from dependencies.sql_db import get_db
+from models.retail.stores import get_loss_rate, get_days_overdue_msg
 
 
 router_retail = APIRouter(
@@ -12,19 +13,10 @@ router_retail = APIRouter(
 )
 
 
-def get_loss_rate(percent: float, light: bool = False) -> str:
-    """ Цвета для обозначения уровня потерь на карте """
-    if percent < -10:
-        return '#93ffac' * light or '#28a745'   # Зеленый
-    elif -10 <= percent <= 0:
-        return '#ffff9b' * light or '#ffc107'   # Желтый
-    return '#fc7462' * light or '#dc3545'       # Красный
-
-
 @router_retail.get('/get_stores', summary='Получить торговые точки')
 def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
                page: int = 1,
-               limit: int = 10,
+               limit: int = 30,
                db: Session = Depends(get_db)):
 
     skip = limit * page - limit
@@ -35,11 +27,11 @@ def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
             s.city_with_type,
             s.city_fias_id,
             s.postal_code,
-            SUM(
+            ROUND(SUM(
                     (
                         (current_date - rp.last_update_date) * rp.avg_cnt_per_day - rp.cnt
                     ) * rp.price / rp.avg_month * 100
-                )  as loss_percentage
+                ), 2)  as loss_percentage
         FROM public.stores AS s
         JOIN public.retail_points AS rp ON s.id_sp = rp.id_sp
         WHERE rp.avg_month > 0 AND s.inn = :inn
@@ -76,7 +68,7 @@ def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
                 'city_with_type': s.city_with_type,
                 'city_fias_id': str(s.city_fias_id),
                 'postal_code': s.postal_code,
-                'name': 'Название точки',
+                'name': s.id_sp,
                 'geo_lat': 55 + randint(450000, 780000) / 1000000,  # Временно рандомные координаты
                 'geo_lon': 37 + randint(450000, 780000) / 1000000,  # пока в базе нет реальных
                 'loss_percentage': float(s.loss_percentage),
@@ -91,42 +83,65 @@ def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
 
 
 @router_retail.get('/get_store_gtins', summary='Получить GTINы торговой точки')
-def get_store_gtins(id_sp: str, db: Session = Depends(get_db)):
+def get_store_gtins(id_sp: str,
+                    page: int = 1,
+                    limit: int = 15,
+                    db: Session = Depends(get_db)):
+    skip = limit * page - limit
+    sql = """
+        SELECT
+            rp.gtin,
+            products.product_name,
+            products.product_short_name,
+            products.tnved,
+            products.tnved10,
+            products.brand,
+            products.country,
+            ROUND(((
+                (current_date - rp.last_update_date) * rp.avg_cnt_per_day - rp.cnt
+            ) * rp.price / rp.avg_month * 100), 2)  as loss_percentage,
+            (
+                ((current_date - rp.last_update_date) * rp.avg_cnt_per_day - rp.cnt) / rp.avg_cnt_per_day
+            )::integer AS days_overdue
+        FROM public.retail_points AS rp
+        JOIN public.products AS products ON products.gtin = rp.gtin
+        WHERE rp.avg_month > 0 AND rp.id_sp = :id_sp 
+        ORDER BY loss_percentage DESC
+        LIMIT :limit
+        OFFSET :skip
+        """
+    params = {
+        'id_sp': id_sp,
+        'skip': skip,
+        'limit': limit
+    }
+    gtins = db.execute(text(sql), params).all()
 
-    res = [
-        {
-            'gtin': '6AB0A3B1D3D427F951C7BDE5C59FE8A0',
-            'product_name': 'молоко',
-            'product_short_name': 'млк',
-            'tnved': 'че это',
-            'tnved10': 'лан',
-            'brand': 'inf-inf',
-            'loss_percentage': -10,
-            'loss_rate': get_loss_rate(-15),
-            'message': 'Товара хватит на 15 дней',
-        },
-        {
-            'gtin': '6AB0A3B1D3D427F951C7BDE5C59FE8A1',
-            'product_name': 'биткоин',
-            'product_short_name': 'btc',
-            'tnved': 'че это',
-            'tnved10': 'лан',
-            'brand': 'бинанс',
-            'loss_percentage': 5,
-            'loss_rate': get_loss_rate(5),
-            'message': 'Товара хватит на 1 день',
-        },
-        {
-            'gtin': '6AB0A3B1D3D427F951C7BDE5C59FE8A2',
-            'product_name': 'холодильник',
-            'product_short_name': 'шкаф',
-            'tnved': 'че это',
-            'tnved10': 'лан',
-            'brand': 'диван',
-            'loss_percentage': 0.3,
-            'loss_rate': get_loss_rate(0.3),
-            'message': 'Товара хватит на 4 дня',
-        },
+    sql = """
+        SELECT COUNT(*) AS gtins_total
+        FROM public.retail_points AS rp
+        JOIN public.products AS products ON products.gtin = rp.gtin
+        WHERE rp.avg_month > 0 AND rp.id_sp = :id_sp
+            """
+    gtins_total = db.execute(text(sql), {'id_sp': id_sp}).first().gtins_total
 
-    ] * 100
+    res = {
+        'gtins': [
+            {
+                'gtin': g.gtin,
+                'product_name': g.product_name,
+                'product_short_name': g.product_short_name,
+                'tnved': g.tnved,
+                'tnved10': g.tnved10,
+                'brand': g.brand,
+                'country': g.country,
+                'loss_percentage': float(g.loss_percentage),
+                'loss_rate_dark': get_loss_rate(float(g.loss_percentage)),
+                'loss_rate_light': get_loss_rate(float(g.loss_percentage), light=True),
+                'message': get_days_overdue_msg(g.days_overdue)
+            } for g in gtins
+        ],
+        'gtins_total': gtins_total
+    }
+
     return JSONResponse(res)

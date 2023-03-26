@@ -7,6 +7,7 @@ from models.files.images import get_file_preview
 from models.files.pdf_generator import PDFGenerator
 from dependencies.sql_db import get_db
 from sql_db.orm_models.reports import Report
+from schemas.reports import NewReport
 
 router_reports = APIRouter(
     prefix='/reports',
@@ -19,14 +20,15 @@ class PDFResponse(Response):
 
 
 @router_reports.post('/save', summary='Сохранение данных по отчету')
-def save(db: Session = Depends(get_db)):
+def save(report_data: NewReport, db: Session = Depends(get_db)):
     """ Сохранить данные пользователя. Возвращает PDF """
 
     dt_str = datetime.now().strftime('%d.%m.%Y %H-%M-%S')
     file_name = f'report_{dt_str}.pdf'
 
-    d = {  # мок пока параметры с фронта не приходят
+    d = {
         'dt_created': dt_str,
+        'report_data': report_data.dict(),
     }
 
     pdf_gen = PDFGenerator('report.html', **d)
