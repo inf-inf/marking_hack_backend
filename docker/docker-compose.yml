@@ -22,6 +22,7 @@ services:
       - ../postgres-data:/var/lib/postgresql/data
     ports:
       - "32768:32768"
+    shm_size: 1g
     command: -p 32768
     networks:
       - back

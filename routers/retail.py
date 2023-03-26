@@ -59,6 +59,9 @@ def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
         ) AS s
         """
     stores_total = db.execute(text(sql), {'inn': inn}).first().stores_total
+
+    config_params = db.execute(text('SELECT * FROM public.config')).first()
+
     from random import randint
     res = {
         'stores': [
@@ -72,8 +75,13 @@ def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
                 'geo_lat': 55 + randint(450000, 780000) / 1000000,  # Временно рандомные координаты
                 'geo_lon': 37 + randint(450000, 780000) / 1000000,  # пока в базе нет реальных
                 'loss_percentage': float(s.loss_percentage),
-                'loss_rate_dark': get_loss_rate(float(s.loss_percentage)),
-                'loss_rate_light': get_loss_rate(float(s.loss_percentage), light=True)
+                'loss_rate_dark': get_loss_rate(float(s.loss_percentage),
+                                                config_params.good_percent_limit,
+                                                config_params.warn_percent_limit),
+                'loss_rate_light': get_loss_rate(float(s.loss_percentage),
+                                                 config_params.good_percent_limit,
+                                                 config_params.warn_percent_limit,
+                                                 light=True)
             } for s in stores
         ],
         'stores_total': stores_total
