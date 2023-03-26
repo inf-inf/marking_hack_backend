@@ -1,9 +1,11 @@
-
-def get_loss_rate(percent: float, light: bool = False) -> str:
+def get_loss_rate(percent: float,
+                  good_percent_limit: int = -20,
+                  warn_percent_limit: int = -5,
+                  light: bool = False) -> str:
     """ Цвета для обозначения уровня потерь на карте """
-    if percent < -20:
+    if percent < good_percent_limit:
         return '#93ffac' * light or '#28a745'   # Зеленый
-    elif -20 <= percent <= -5:
+    elif good_percent_limit <= percent <= warn_percent_limit:
         return '#ffff9b' * light or '#ffc107'   # Желтый
     return '#fc7462' * light or '#dc3545'       # Красный
 
