@@ -68,7 +68,7 @@ def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
                 'city_with_type': s.city_with_type,
                 'city_fias_id': str(s.city_fias_id),
                 'postal_code': s.postal_code,
-                'name': 'Название точки',
+                'name': s.id_sp,
                 'geo_lat': 55 + randint(450000, 780000) / 1000000,  # Временно рандомные координаты
                 'geo_lon': 37 + randint(450000, 780000) / 1000000,  # пока в базе нет реальных
                 'loss_percentage': float(s.loss_percentage),
