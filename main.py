@@ -18,6 +18,8 @@ app.add_middleware(
 app.include_router(routers.common)
 app.include_router(routers.reports)
 app.include_router(routers.retail)
+app.include_router(routers.config)
+app.include_router(routers.upload)
 
 
 if __name__ == "__main__":

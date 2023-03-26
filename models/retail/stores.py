@@ -4,10 +4,10 @@ def get_loss_rate(percent: float,
                   light: bool = False) -> str:
     """ Цвета для обозначения уровня потерь на карте """
     if percent < good_percent_limit:
-        return '#93ffac' * light or '#28a745'   # Зеленый
+        return '#c7ffd4' * light or '#28a745'   # Зеленый
     elif good_percent_limit <= percent <= warn_percent_limit:
         return '#ffff9b' * light or '#ffc107'   # Желтый
-    return '#fc7462' * light or '#dc3545'       # Красный
+    return '#fccec7' * light or '#dc3545'       # Красный
 
 
 def get_days_overdue_msg(days_overdue: int) -> str:
