@@ -22,8 +22,12 @@ def get_loss_rate(percent: float, light: bool = False) -> str:
 
 
 @router_retail.get('/get_stores', summary='Получить торговые точки')
-def get_stores(inn: str = '', db: Session = Depends(get_db)):
+def get_stores(inn: str = '6B8E111AB5B5C556C0AEA292ACA4D88B',
+               page: int = 1,
+               limit: int = 10,
+               db: Session = Depends(get_db)):
 
+    skip = limit * page - limit
     sql = """
         SELECT
             s.id_sp,
@@ -38,27 +42,50 @@ def get_stores(inn: str = '', db: Session = Depends(get_db)):
                 )  as loss_percentage
         FROM public.stores AS s
         JOIN public.retail_points AS rp ON s.id_sp = rp.id_sp
-        WHERE rp.avg_month > 0 AND s.inn = '6B8E111AB5B5C556C0AEA292ACA4D88B'
+        WHERE rp.avg_month > 0 AND s.inn = :inn
         GROUP BY s.id_sp, s.region_code, s.city_with_type, s.city_fias_id, s.postal_code
         ORDER BY loss_percentage DESC
+        LIMIT :limit
+        OFFSET :skip
     """
-    stores = db.execute(text(sql)).all()
+    params = {
+        'inn': inn,
+        'skip': skip,
+        'limit': limit
+    }
+    stores = db.execute(text(sql), params).all()
+
+    sql = """
+        SELECT COUNT(*) AS stores_total
+        FROM
+        (
+            SELECT COUNT(*)
+            FROM public.stores AS s
+            JOIN public.retail_points AS rp ON s.id_sp = rp.id_sp
+            WHERE rp.avg_month > 0 AND s.inn = :inn
+            GROUP BY rp.id_sp
+        ) AS s
+        """
+    stores_total = db.execute(text(sql), {'inn': inn}).first().stores_total
     from random import randint
-    res = [
-        {
-            'id_sp': s.id_sp,
-            'region_code': s.region_code,
-            'city_with_type': s.city_with_type,
-            'city_fias_id': str(s.city_fias_id),
-            'postal_code': s.postal_code,
-            'name': 'Название точки',
-            'geo_lat': 55 + randint(450000, 780000) / 1000000,  # Временно рандомные координаты
-            'geo_lon': 37 + randint(450000, 780000) / 1000000,  # пока в базе нет реальных
-            'loss_percentage': float(s.loss_percentage),
-            'loss_rate_dark': get_loss_rate(float(s.loss_percentage)),
-            'loss_rate_light': get_loss_rate(float(s.loss_percentage), light=True)
-        } for s in stores
-    ]
+    res = {
+        'stores': [
+            {
+                'id_sp': s.id_sp,
+                'region_code': s.region_code,
+                'city_with_type': s.city_with_type,
+                'city_fias_id': str(s.city_fias_id),
+                'postal_code': s.postal_code,
+                'name': 'Название точки',
+                'geo_lat': 55 + randint(450000, 780000) / 1000000,  # Временно рандомные координаты
+                'geo_lon': 37 + randint(450000, 780000) / 1000000,  # пока в базе нет реальных
+                'loss_percentage': float(s.loss_percentage),
+                'loss_rate_dark': get_loss_rate(float(s.loss_percentage)),
+                'loss_rate_light': get_loss_rate(float(s.loss_percentage), light=True)
+            } for s in stores
+        ],
+        'stores_total': stores_total
+    }
 
     return JSONResponse(res)
 
